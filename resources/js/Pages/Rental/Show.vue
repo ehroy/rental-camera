@@ -7,14 +7,22 @@ const helpers = inject("helpers");
 const product = ref(props.product);
 
 const bookedDates = ref(props.bookedDates || []); // Array of {start, end, status}
-console.log(props);
+const normalizeDate = (iso) => iso.split("T")[0];
+
+bookedDates.value = bookedDates.value.map((b) => ({
+    start: normalizeDate(b.start),
+    end: normalizeDate(b.end),
+    status: b.status,
+}));
 // Form data
 const rentalForm = ref({
-    image: "",
     tanggal_mulai: "",
     tanggal_selesai: "",
-    jumlah: 1,
     catatan: "",
+    gambar: "",
+    nama_pemesan: "",
+    nomor_wa: "",
+    jumlah: 1,
 });
 
 const selectedImage = ref(0);
@@ -33,13 +41,11 @@ const productImages = ref([
 // Check if date is booked and get its status
 const getDateStatus = (date) => {
     for (const booking of bookedDates.value) {
-        // Bandingkan langsung sebagai string ISO (YYYY-MM-DD)
-        // Tidak perlu convert ke Date object
         if (date >= booking.start && date <= booking.end) {
-            return booking.status; // 'pending' or 'approved'
+            return booking.status;
         }
     }
-    return null; // not booked
+    return null;
 };
 
 // Check if date range contains booked dates (approved only)
@@ -116,11 +122,13 @@ const isFormValid = computed(() => {
     return (
         rentalForm.value.tanggal_mulai &&
         rentalForm.value.tanggal_selesai &&
-        rentalDuration.value > 0 &&
-        !hasBookedDatesInRange.value
+        rentalForm.value.nama_pemesan.trim() !== "" &&
+        rentalForm.value.nomor_wa.trim() !== "" &&
+        rentalForm.value.nomor_wa.length >= 10 &&
+        !hasBookedDatesInRange.value &&
+        rentalDuration.value > 0
     );
 });
-
 const formatCurrency = (value) => {
     return new Intl.NumberFormat("id-ID", {
         style: "currency",
@@ -143,22 +151,27 @@ const submitBooking = () => {
         return;
     }
 
+    // Format nomor WA: tambahkan +62 jika diawali 0
+    let formattedPhone = rentalForm.value.nomor_wa.trim();
+    if (formattedPhone.startsWith("0")) {
+        formattedPhone = "+62" + formattedPhone.substring(1);
+    } else if (!formattedPhone.startsWith("+")) {
+        formattedPhone = "+62" + formattedPhone;
+    }
+
     const payload = {
         tanggal_mulai: rentalForm.value.tanggal_mulai,
         tanggal_selesai: rentalForm.value.tanggal_selesai,
         jumlah: quantity.value,
         image: rentalForm.value.gambar,
         catatan: rentalForm.value.catatan,
-        nama_pemesan: "GUEST",
-        nomor_wa: "+6289532873283",
+        nama_pemesan: rentalForm.value.nama_pemesan.trim(),
+        nomor_wa: formattedPhone,
     };
 
-    // Gunakan router.post dengan onSuccess callback
     router.post(`/product/${product.value.id}/booking`, payload, {
         onSuccess: (page) => {
-            // Ambil whatsapp URL dari response
             if (page.props.whatsappUrl) {
-                // Redirect ke WhatsApp menggunakan window.location
                 window.location.href = page.props.whatsappUrl;
             }
         },
@@ -183,27 +196,7 @@ const loadCart = () => {
         cartCount.value = cart.value.length;
     }
 };
-const removeFromCart = (itemId) => {
-    cart.value = cart.value.filter((item) => item.id !== itemId);
-    saveCart();
-};
 
-// Function untuk update quantity di cart
-const updateCartQuantity = (itemId, newQuantity) => {
-    const item = cart.value.find((item) => item.id === itemId);
-    if (item && newQuantity > 0) {
-        item.jumlah = newQuantity;
-        item.total_harga = item.product_harga * item.durasi * newQuantity;
-        saveCart();
-    }
-};
-
-// Function untuk clear cart
-const clearCart = () => {
-    cart.value = [];
-    localStorage.removeItem("cart");
-    cartCount.value = 0;
-};
 // Function untuk save cart
 const saveCart = () => {
     localStorage.setItem("cart", JSON.stringify(cart.value));
@@ -867,6 +860,152 @@ const nextMonth = () => {
                             @submit.prevent="submitBooking"
                             class="space-y-6 pt-2"
                         >
+                            <!-- Informasi Pemesan -->
+                            <div class="space-y-4">
+                                <p class="font-semibold text-gray-700 text-sm">
+                                    Informasi Pemesan :
+                                </p>
+
+                                <!-- Nama Pemesan -->
+                                <div class="group">
+                                    <label
+                                        class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3"
+                                    >
+                                        <svg
+                                            class="w-4 h-4 text-blue-600"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                            />
+                                        </svg>
+                                        Nama Lengkap
+                                    </label>
+                                    <div class="relative">
+                                        <input
+                                            v-model="rentalForm.nama_pemesan"
+                                            type="text"
+                                            required
+                                            placeholder="Masukkan nama lengkap Anda"
+                                            class="w-full px-5 py-4 pr-12 border-2 rounded-xl font-medium text-gray-700 transition-all duration-300 focus:outline-none focus:ring-4 border-gray-200 bg-white focus:border-blue-500 focus:ring-blue-100 hover:border-blue-300 hover:shadow-md"
+                                        />
+                                        <div
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                                        >
+                                            <svg
+                                                v-if="rentalForm.nama_pemesan"
+                                                class="w-5 h-5 text-green-500"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M5 13l4 4L19 7"
+                                                />
+                                            </svg>
+                                            <svg
+                                                v-else
+                                                class="w-5 h-5 text-gray-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                                />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Nomor WhatsApp -->
+                                <div class="group">
+                                    <label
+                                        class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3"
+                                    >
+                                        <svg
+                                            class="w-4 h-4 text-green-600"
+                                            fill="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
+                                            />
+                                        </svg>
+                                        Nomor WhatsApp
+                                    </label>
+                                    <div class="relative">
+                                        <input
+                                            v-model="rentalForm.nomor_wa"
+                                            type="tel"
+                                            required
+                                            placeholder="Contoh: 089532873283"
+                                            pattern="[0-9]{10,13}"
+                                            class="w-full px-5 py-4 pr-12 border-2 rounded-xl font-medium text-gray-700 transition-all duration-300 focus:outline-none focus:ring-4 border-gray-200 bg-white focus:border-green-500 focus:ring-green-100 hover:border-green-300 hover:shadow-md"
+                                        />
+                                        <div
+                                            class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+                                        >
+                                            <svg
+                                                v-if="
+                                                    rentalForm.nomor_wa &&
+                                                    rentalForm.nomor_wa
+                                                        .length >= 10
+                                                "
+                                                class="w-5 h-5 text-green-500"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M5 13l4 4L19 7"
+                                                />
+                                            </svg>
+                                            <svg
+                                                v-else
+                                                class="w-5 h-5 text-gray-400"
+                                                fill="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
+                                                />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <p
+                                        class="mt-2 text-xs text-gray-500 flex items-center gap-1"
+                                    >
+                                        <svg
+                                            class="w-3 h-3"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                        Format: 08xx tanpa +62 atau spasi
+                                    </p>
+                                </div>
+                            </div>
+
                             <p class="font-semibold text-gray-700 text-sm">
                                 Tanggal :
                             </p>
@@ -1112,39 +1251,6 @@ const nextMonth = () => {
                                     </transition>
                                 </div>
                             </div>
-
-                            <!-- Quantity -->
-                            <!-- <div>
-                                <label
-                                    class="block text-sm font-medium text-gray-700 mb-2"
-                                >
-                                    Jumlah Unit
-                                </label>
-                                <div class="flex items-center space-x-4">
-                                    <button
-                                        type="button"
-                                        @click="
-                                            quantity = Math.max(1, quantity - 1)
-                                        "
-                                        class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold"
-                                    >
-                                        -
-                                    </button>
-                                    <input
-                                        v-model.number="quantity"
-                                        type="number"
-                                        min="1"
-                                        class="w-20 text-center px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-                                    />
-                                    <button
-                                        type="button"
-                                        @click="quantity++"
-                                        class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold"
-                                    >
-                                        +
-                                    </button>
-                                </div>
-                            </div> -->
 
                             <!-- Notes -->
                             <div>

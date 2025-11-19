@@ -227,7 +227,7 @@ class RentalController extends Controller
             $bookings = [];
             $productDetails = [];
 
-            // Loop setiap item di cart
+            // LOOP tiap item cart
             foreach ($request->cart_items as $item) {
                 $product = Product::findOrFail($item['id']);
 
@@ -242,9 +242,8 @@ class RentalController extends Controller
                 $totalPrice = $product->harga_sewa_perhari * $days * $item['jumlah'];
                 $totalHargaKeseluruhan += $totalPrice;
 
-                // ✅ Simpan booking - booking_code akan auto-generate
+                // SIMPAN BOOKING
                 $booking = Booking::create([
-                    // booking_code otomatis di-generate di Model
                     'product_id' => $product->id,
                     'nama_pemesan' => $request->nama_pemesan,
                     'nomor_wa' => $request->nomor_wa,
@@ -258,6 +257,8 @@ class RentalController extends Controller
                 ]);
 
                 $bookings[] = $booking;
+
+                // SIMPAN DETAIL PRODUK + BOOKING CODE
                 $productDetails[] = [
                     'nama' => $product->nama,
                     'harga' => $product->harga_sewa_perhari,
@@ -265,55 +266,62 @@ class RentalController extends Controller
                     'tanggal_mulai' => $item['tanggal_mulai'],
                     'tanggal_selesai' => $item['tanggal_selesai'],
                     'durasi' => $days,
-                    'total' => $totalPrice
+                    'total' => $totalPrice,
+                    'booking_code' => $booking->booking_code   // ← penting
                 ];
             }
 
-            // ✅ Format WhatsApp message dengan BOOKING CODE
+            // ==========================
+            // FORMAT PESAN WHATSAPP
+            // ==========================
+
             $adminPhone = '62895381587961';
-            
             $message = "🎯 *BOOKING KERANJANG*\n";
             $message .= "━━━━━━━━━━━━━━━━━━\n\n";
-            
-            // ✅ Tampilkan booking codes di awal
+
+            // DAFTAR BOOKING CODE
             $message .= "🆔 *Kode Booking:*\n";
-            foreach ($bookings as $booking) {
-                $message .= "   *{$booking->booking_code}*\n";
+            foreach ($bookings as $b) {
+                $message .= "   • *{$b->booking_code}*\n";
             }
             $message .= "\n";
-            
+
+            // DATA CUSTOMER
             $message .= "👤 *Nama Pemesan:* {$request->nama_pemesan}\n";
-            $message .= "📱 *No. WhatsApp:* {$request->nomor_wa}\n\n";
+            $message .= "📱 *No. WA:* {$request->nomor_wa}\n\n";
+
             $message .= "📦 *DAFTAR PRODUK:*\n";
             $message .= "━━━━━━━━━━━━━━━━━━\n";
-            
+
+            // PRODUK PER BOOKING
             foreach ($productDetails as $index => $detail) {
                 $message .= "\n";
-                $message .= "   • Kode Booking: *{$booking->booking_code}*\n";
-                $message .= "\n*" . ($index + 1) . ". {$detail['nama']}*\n";
+                $message .= "   🔑 *Kode Booking: {$detail['booking_code']}*\n";
+                $message .= "*" . ($index + 1) . ". {$detail['nama']}*\n";
                 $message .= "   🔢 Jumlah: {$detail['jumlah']} unit\n";
                 $message .= "   📅 Mulai: " . Carbon::parse($detail['tanggal_mulai'])->isoFormat('D MMM YYYY') . "\n";
                 $message .= "   📅 Selesai: " . Carbon::parse($detail['tanggal_selesai'])->isoFormat('D MMM YYYY') . "\n";
-                $message .= "   ⏱️ Durasi: {$detail['durasi']} hari\n";
+                $message .= "   ⏱ Durasi: {$detail['durasi']} hari\n";
                 $message .= "   💰 Harga: Rp " . number_format($detail['harga'], 0, ',', '.') . "/hari\n";
                 $message .= "   💵 Subtotal: Rp " . number_format($detail['total'], 0, ',', '.') . "\n";
             }
-            
+
+            // TOTAL
             $message .= "\n━━━━━━━━━━━━━━━━━━\n";
-            $message .= "💰 *TOTAL PEMBAYARAN:*\n";
-            $message .= "   *Rp " . number_format($totalHargaKeseluruhan, 0, ',', '.') . "*\n\n";
-            
+            $message .= "💰 *TOTAL PEMBAYARAN:* ";
+            $message .= "*Rp " . number_format($totalHargaKeseluruhan, 0, ',', '.') . "*\n\n";
+
             if ($request->catatan) {
                 $message .= "📝 *Catatan:*\n   {$request->catatan}\n\n";
             }
-            
+
             $message .= "⏰ *Waktu Order:* " . now()->isoFormat('D MMM YYYY, HH:mm') . "\n\n";
-            $message .= "_Mohon konfirmasi ketersediaan dan pembayaran dengan menyebutkan kode booking di atas_";
-            
+            $message .= "_Mohon konfirmasi dengan menyebutkan kode booking di atas_";
+
             $encodedMessage = urlencode($message);
             $whatsappUrl = "https://wa.me/{$adminPhone}?text={$encodedMessage}";
 
-            // ✅ Simpan data ke session dengan booking codes
+            // SIMPAN SESSION
             session([
                 'booking_success' => [
                     'booking_codes' => array_map(fn($b) => $b->booking_code, $bookings),
@@ -327,32 +335,9 @@ class RentalController extends Controller
             ]);
 
             return redirect()->route('rental.success');
-            
+
         } catch (\Exception $e) {
-      
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-    }
-
-    /**
-     * ✅ Method baru untuk cek status booking by code
-     */
-    public function checkStatus(Request $request)
-    {
-        $request->validate([
-            'booking_code' => 'required|string'
-        ]);
-
-        $booking = Booking::with('product')
-            ->byCode($request->booking_code)
-            ->first();
-
-        if (!$booking) {
-            return back()->with('error', 'Kode booking tidak ditemukan');
-        }
-
-        return inertia('Booking/Status', [
-            'booking' => $booking
-        ]);
     }
 }

@@ -145,6 +145,7 @@ const socialLinks = page.props.social_links;
                         loading="lazy"
                         referrerpolicy="no-referrer-when-downgrade"
                         class="grayscale"
+                        title="Google maps"
                     ></iframe>
                 </div>
             </div>

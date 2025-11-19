@@ -13,20 +13,16 @@ class RouteServiceProvider extends ServiceProvider
     /**
      * The path to your application's "home" route.
      *
-     * Typically, users are redirected here after authentication.
-     *
      * @var string
      */
     public const HOME = '/home';
 
     /**
-     * Define your route model bindings, pattern filters, and other route configuration.
+     * Bootstrap any application services.
      */
     public function boot(): void
     {
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
-        });
+        $this->configureRateLimiting();
 
         $this->routes(function () {
             Route::middleware('api')
@@ -35,6 +31,44 @@ class RouteServiceProvider extends ServiceProvider
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
+        });
+    }
+
+    /**
+     * Configure rate limiting for the application.
+     */
+    protected function configureRateLimiting(): void
+    {
+        /**
+         * 🔹 1. API Rate Limit
+         * Default: 60 request / menit / IP
+         */
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
+
+        /**
+         * 🔹 2. FORM Rate Limit (anti spam)
+         * Biasanya dipakai untuk:
+         * - booking form
+         * - checkout form
+         * - contact form
+         *
+         * Limit: 5 request / menit / IP
+         */
+        RateLimiter::for('form', function (Request $request) {
+            return [
+                Limit::perMinute(5)->by($request->ip()),
+            ];
+        });
+
+        /**
+         * 🔹 3. WEB / INERTIA Rate Limit
+         * Mencegah spam refresh & ddos ringan.
+         * Limit: 60 request / menit / IP
+         */
+        RateLimiter::for('web', function (Request $request) {
+            return Limit::perMinute(60)->by($request->ip());
         });
     }
 }
