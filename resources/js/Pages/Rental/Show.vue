@@ -1342,7 +1342,10 @@ const nextMonth = () => {
                                 class="flex items-center space-x-3 text-sm text-gray-600"
                             >
                                 <span>✅</span>
-                                <span>Gratis antar-jemput area Jakarta</span>
+                                <span
+                                    >Gratis antar-jemput area Jepara Kota selama
+                                    Penyewaan paket body dan lensa</span
+                                >
                             </div>
                             <div
                                 class="flex items-center space-x-3 text-sm text-gray-600"
