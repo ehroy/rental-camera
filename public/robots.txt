@@ -1,4 +1,15 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://websitekamu.com/sitemap.xml
+Sitemap: https://quickrental.my.id/sitemap.xml
+
+Disallow: /storage/
+Disallow: /vendor/
+Disallow: /node_modules/
+Disallow: /build/
+
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.png
+Allow: /*.webp
+Allow: /*.svg
