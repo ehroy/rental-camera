@@ -83,7 +83,7 @@ class Product extends Model
 
         static::updating(function ($product) {
             // Update slug hanya jika name benar2 berubah
-            if ($product->isDirty('name')) {
+            if ($product->isDirty('nama')) {
                 $product->slug = Str::slug($product->name);
             }
         });
