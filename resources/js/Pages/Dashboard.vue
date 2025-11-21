@@ -10,7 +10,6 @@ const page = usePage();
 const products = computed(() => page.props.products || []);
 const categories = computed(() => page.props.categories || []);
 const filters = computed(() => page.props.filters || {});
-
 const isMobileMenuOpen = ref(false);
 const searchQuery = ref(filters.value.search || "");
 const selectedCategory = ref(filters.value.category_id || "");
@@ -352,7 +351,7 @@ const formatCurrency = (value) => {
                             </div>
 
                             <Link
-                                :href="`/product/${product.id}`"
+                                :href="`/product/${product.slug}`"
                                 class="block text-center bg-[#333333] text-[#ebebeb] font-semibold py-3 transition-colors shadow-lg hover:shadow-xl"
                             >
                                 Lihat Detail & Booking

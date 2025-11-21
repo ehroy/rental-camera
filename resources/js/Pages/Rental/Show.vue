@@ -1,11 +1,11 @@
 <script setup>
 import { ref, computed, watch, onMounted, inject } from "vue";
-import { Link, usePage, router } from "@inertiajs/vue3";
+import { Link, usePage, router, Head } from "@inertiajs/vue3";
 import Navbar from "@/Components/Navbar.vue";
 const { props } = usePage();
 const helpers = inject("helpers");
 const product = ref(props.product);
-
+const showBookerInfo = ref(false);
 const bookedDates = ref(props.bookedDates || []); // Array of {start, end, status}
 const normalizeDate = (iso) => iso.split("T")[0];
 
@@ -23,6 +23,39 @@ const rentalForm = ref({
     nama_pemesan: "",
     nomor_wa: "",
     jumlah: 1,
+});
+const handleSubmit = () => {
+    if (!showBookerInfo.value) {
+        // Tampilkan form info pemesan
+        showBookerInfo.value = true;
+    } else {
+        // Submit booking
+        submitBooking();
+    }
+};
+const isFormValidForBooking = computed(() => {
+    if (!showBookerInfo.value) {
+        return (
+            rentalForm.value.tanggal_mulai &&
+            rentalForm.value.tanggal_selesai &&
+            !props.hasBookedDatesInRange
+        );
+    }
+    return (
+        rentalForm.value.nama_pemesan &&
+        rentalForm.value.nomor_wa &&
+        rentalForm.value.nomor_wa.length >= 10 &&
+        rentalForm.value.tanggal_mulai &&
+        rentalForm.value.tanggal_selesai &&
+        !props.hasBookedDatesInRange
+    );
+});
+const isFormValidForCart = computed(() => {
+    return (
+        rentalForm.value.tanggal_mulai &&
+        rentalForm.value.tanggal_selesai &&
+        !props.hasBookedDatesInRange
+    );
 });
 
 const selectedImage = ref(0);
@@ -857,11 +890,11 @@ const nextMonth = () => {
 
                         <!-- Booking Form -->
                         <form
-                            @submit.prevent="submitBooking"
+                            @submit.prevent="handleSubmit"
                             class="space-y-6 pt-2"
                         >
-                            <!-- Informasi Pemesan -->
-                            <div class="space-y-4">
+                            <!-- Informasi Pemesan - Hanya muncul jika showBookerInfo = true -->
+                            <div v-if="showBookerInfo" class="space-y-4">
                                 <p class="font-semibold text-gray-700 text-sm">
                                     Informasi Pemesan :
                                 </p>
@@ -1009,6 +1042,7 @@ const nextMonth = () => {
                             <p class="font-semibold text-gray-700 text-sm">
                                 Tanggal :
                             </p>
+
                             <!-- Date Range -->
                             <div class="grid grid-cols-2 gap-4">
                                 <div class="group">
@@ -1108,6 +1142,7 @@ const nextMonth = () => {
                                         </p>
                                     </transition>
                                 </div>
+
                                 <div class="group">
                                     <label
                                         class="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3"
@@ -1310,10 +1345,10 @@ const nextMonth = () => {
                             <div class="space-y-3">
                                 <button
                                     type="submit"
-                                    :disabled="!isFormValid"
+                                    :disabled="!isFormValidForBooking"
                                     :class="[
                                         'w-full font-bold py-4 rounded-xl transition shadow-lg',
-                                        isFormValid
+                                        isFormValidForBooking
                                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
                                             : 'bg-gray-300 text-gray-500 cursor-not-allowed',
                                     ]"
@@ -1323,10 +1358,10 @@ const nextMonth = () => {
                                 <button
                                     type="button"
                                     @click="addToCart"
-                                    :disabled="!isFormValid"
+                                    :disabled="!isFormValidForCart"
                                     :class="[
                                         'w-full font-bold py-4 rounded-xl transition border-2',
-                                        isFormValid
+                                        isFormValidForCart
                                             ? 'bg-white border-blue-600 text-blue-600 hover:bg-blue-50'
                                             : 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed',
                                     ]"

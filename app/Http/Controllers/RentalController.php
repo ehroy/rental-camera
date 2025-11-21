@@ -12,6 +12,12 @@ use Inertia\Inertia;
 class RentalController extends Controller
 {
 
+    public function sitemap()
+    {
+        $products = Product::all();
+        return response()->view('sitemap', compact('products'))
+            ->header('Content-Type', 'text/xml');
+    }
 
     public function index(Request $request)
     {
@@ -48,6 +54,7 @@ class RentalController extends Controller
     }
     public function show(Product $product)
     {
+        // dd($product);
         $bookedDates = $product->getBookedDates();
 
         return Inertia::render('Rental/Show', [

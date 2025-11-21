@@ -173,6 +173,7 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($products as $product) {
+            $product['slug'] = Str::slug($product['nama']);
             Product::create($product);
         }
 

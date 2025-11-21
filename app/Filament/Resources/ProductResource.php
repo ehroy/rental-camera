@@ -11,6 +11,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class ProductResource extends Resource
 {
@@ -29,9 +30,13 @@ class ProductResource extends Resource
                 Forms\Components\Section::make('Informasi Produk')
                     ->schema([
                         Forms\Components\TextInput::make('nama')
-                            ->required()
-                            ->maxLength(255)
-                            ->label('Nama Produk'),
+                        ->reactive()
+                        ->afterStateUpdated(fn ($state, callable $set) =>
+                            $set('slug', Str::slug($state))
+                        ),
+
+                        Forms\Components\TextInput::make('slug')
+                            ->unique(ignoreRecord: true),
                         Select::make('category_id')
                             ->label('Kategori')
                             ->options(Category::all()->pluck('nama', 'id'))
