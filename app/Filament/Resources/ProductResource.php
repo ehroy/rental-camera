@@ -7,7 +7,6 @@ use App\Models\Category;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -30,22 +29,15 @@ class ProductResource extends Resource
             ->schema([
                 Forms\Components\Section::make('Informasi Produk')
                     ->schema([
-                        TextInput::make('nama')
-                            ->reactive()
-                            ->afterStateUpdated(function ($state, $set, $get) {
-                                // Jika SLUG sebelumnya masih sama dengan slug dari nama lama,
-                                // maka update slug mengikuti nama baru
-                                $oldSlug = Str::slug($get('nama'));
+                        Forms\Components\TextInput::make('nama')
+                        ->reactive()
+                        ->afterStateUpdated(fn ($state, callable $set) =>
+                            $set('slug', Str::slug($state))
+                        ),
 
-                                // Update slug HANYA jika slug masih default atau kosong
-                                if ($get('slug') === '' || $get('slug') === $oldSlug) {
-                                    $set('slug', Str::slug($state));
-                                }
-                            }),
-
-                        TextInput::make('slug')
+                        Forms\Components\TextInput::make('slug')
                             ->unique(ignoreRecord: true)
-                            ->dehydrated(), // wajib agar slug tersimpan
+                            ->dehydrated(),
                         Select::make('category_id')
                             ->label('Kategori')
                             ->options(Category::all()->pluck('nama', 'id'))
