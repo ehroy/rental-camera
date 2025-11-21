@@ -52,11 +52,10 @@ class RentalController extends Controller
             ],
         ]);
     }
-    public function show(Product $product)
+    public function show( $slug)
     {
-        // dd($product);
+       $product = Product::where('slug', $slug)->firstOrFail();
         $bookedDates = $product->getBookedDates();
-
         return Inertia::render('Rental/Show', [
             'product' => $product,
             'bookedDates' => $bookedDates,

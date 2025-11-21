@@ -24,9 +24,8 @@ Route::middleware(['throttle:web'])->group(function () {
     Route::get('/contact', fn () => Inertia::render('Contact'));
     Route::get('/rental/success', [RentalController::class, 'success'])
         ->name('rental.success');
-    Route::get('/product', [RentalController::class, 'index'])->name('rental.index');
     // Route::get('/product/{product}', [RentalController::class, 'show'])->name('rental.show');
-    Route::get('/product/{product:slug}', [RentalController::class, 'show'])->name('rental.show');
+    Route::get('/product/{slug}', [RentalController::class, 'show'])->name('rental.show');
     Route::get('/sitemap.xml', [RentalController::class, 'sitemap']);
 });
 
