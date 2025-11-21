@@ -263,10 +263,6 @@ const saveCart = () => {
     cartCount.value = cart.value.length;
 };
 const addToCart = () => {
-    if (!isFormValid.value) {
-        return;
-    }
-
     // Buat cart item
     const cartItem = {
         id: product.value.id, // Unique ID untuk cart item
