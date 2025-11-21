@@ -2,9 +2,36 @@
 import { ref, computed, watch, onMounted, inject } from "vue";
 import { Link, usePage, router, Head } from "@inertiajs/vue3";
 import Navbar from "@/Components/Navbar.vue";
+import { useHead } from "@vueuse/head";
 const { props } = usePage();
 const helpers = inject("helpers");
 const product = ref(props.product);
+useHead({
+    script: [
+        {
+            type: "application/ld+json",
+            children: JSON.stringify({
+                "@context": "https://schema.org/",
+                "@type": "Product",
+                name: props.product.nama,
+                image: props.product.gambar,
+                description: props.product.deskripsi,
+                sku: props.product.id,
+                brand: {
+                    "@type": "Brand",
+                    name: "Quick Rental Kamera Jepara",
+                },
+                offers: {
+                    "@type": "Offer",
+                    url: `https://quickrental.my.id/product/${props.product.slug}`,
+                    priceCurrency: "IDR",
+                    price: props.product.harga_sewa_perhari,
+                    availability: "http://schema.org/InStock",
+                },
+            }),
+        },
+    ],
+});
 const showBookerInfo = ref(false);
 const bookedDates = ref(props.bookedDates || []); // Array of {start, end, status}
 const normalizeDate = (iso) => iso.split("T")[0];
@@ -422,6 +449,15 @@ const nextMonth = () => {
 </script>
 
 <template>
+    <Head>
+        <title>{{ product.nama }}</title>
+        <meta name="description" content="{{ product.deskripsi }}" />
+        <meta name="keywords" content="{{ product.slug }}" />
+        <meta property="og:title" content="{{ title }}" />
+        <meta property="og:description" content="{{ product.deskripsi }}" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://quickrental.my.id" />
+    </Head>
     <div class="min-h-screen bg-gray-50">
         <!-- Navbar -->
         <Navbar />

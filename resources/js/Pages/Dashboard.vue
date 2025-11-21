@@ -2,7 +2,7 @@
 import Footer from "@/Components/Footer.vue";
 import Navbar from "@/Components/Navbar.vue";
 import { ref, computed, inject, watch } from "vue";
-import { Link, usePage, router } from "@inertiajs/vue3";
+import { Link, usePage, router, Head } from "@inertiajs/vue3";
 
 const page = usePage();
 

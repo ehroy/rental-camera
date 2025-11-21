@@ -2,6 +2,8 @@ import "./bootstrap";
 import "../css/app.css";
 import { createApp, h, onMounted } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
+import { createHead } from "@vueuse/head";
+const head = createHead();
 import helpers from "./helpers";
 
 createInertiaApp({
@@ -23,6 +25,7 @@ createInertiaApp({
                 });
             },
         })
+            .use(head)
             .use(plugin)
             .mount(el);
     },
