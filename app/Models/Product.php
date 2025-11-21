@@ -82,7 +82,10 @@ class Product extends Model
         });
 
         static::updating(function ($product) {
-            $product->slug = Str::slug($product->name);
+            // Update slug hanya jika name benar2 berubah
+            if ($product->isDirty('name')) {
+                $product->slug = Str::slug($product->name);
+            }
         });
     }
    
